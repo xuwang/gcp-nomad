@@ -1,4 +1,4 @@
-# Nomad Cluster on Google Clould with Nomad
+# Create A Nomad Cluster On GCP with Terraform
 
 This is a demo project that will create a [Nomad Cluster][nomad] on **[Google Clould Platform][gCloud]** with **[Terraform][terraform]**.
 
@@ -64,9 +64,9 @@ This file is downloaded directly from the [Google Project Console][gProject]:
 ```shell
 $ git clone https://github.com/xuwang/gcp-nomad.git
 $ cp account.json gcp-nomad/tf/
-$ cd gcp-nmad/tf
+$ cd gcp-nomad/tf
 ```
-**Note:** You should check default values defined in **tf/variables.tf** and make modification to fit your own case, e.g. use your own **`google_project_id`** instead of the default _`nomadcluster`_.
+**Note:** You should check default values defined in **tf/variables.tf** and make modification to match your own case, e.g. use your own **`google_project_id`** instead of the default _`nomadcluster`_.
 
 ### Plan and apply the Terraform managed resources
 
@@ -96,14 +96,10 @@ $ terraform apply
 Apply complete! Resources: 8 added, 0 changed, 0 destroyed.
 ...
 Outputs:
-   www_service_ip = 146.148.104.177
+   nomad_service_ip = 146.148.104.177
 ```
 Give a few minutes, the NomadCluster should be up and running on google cloud.
 
-Open browser on _`http://<www_service_ip>`_ and keep reloading the page, we should get pages served from different servers.
-
-### Test the HA
-Go to [Google Cloud Instance Console][gInstance] and stop 1 or 2 instances,  reload _`http://<www_service_ip>`_ we should see that it is keeping up.
 
 ## Cleanup: Destroy the NomadCluster
 
@@ -118,9 +114,6 @@ google_compute_instance.www.2: Destruction complete
 
 Apply complete! Resources: 0 added, 0 changed, 8 destroyed.
 ```
-## Autoscaling Groups and Content-Based Load Balancing
-
-An example of using Google Compute **Managed Autoscaling** and **HTTP Load Balancing** is in _tf-autoscaling_ dir.
 
 [virtualbox]: https://www.virtualbox.org/
 [vagrant]: https://www.vagrantup.com/downloads.html
