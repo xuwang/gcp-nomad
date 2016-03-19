@@ -1,0 +1,88 @@
+#cloud-config
+coreos:
+  etcd2:
+    # Discovery is populated by Terraform
+    discovery: ${etcd_discovery_url}
+    # $public_ipv4 and $private_ipv4 are populated by the cloud provider
+    # for vault, we only allows internal etcd clients
+    advertise-client-urls: http://$private_ipv4:2379
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    listen-client-urls: http://0.0.0.0:2379
+    listen-peer-urls: http://$private_ipv4:2380
+  units:
+    - name: etcd2.service
+      command: start
+      drop-ins:
+        - name: 60-etcd2-wait-for-disk.conf
+          content: |
+              [Unit]
+              Requires=etcd-data.service
+              After=etcd-data.service
+              [Service]
+              Environment="ETCD_DATA_DIR=/var/lib/data/etcd2/"
+    - name: format-disk.service
+      command: start
+      content: |
+        [Unit]
+        Description=Formats the disk drive
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        Environment="LABEL=var-lib-data"
+        Environment="DEV=/dev/sdb"
+        # Do not wipe the disk if it's already being used, so the data persistent cross reboot.
+        ExecStart=-/bin/bash -c "if ! findfs LABEL=$LABEL > /tmp/label.$LABEL; \
+          then wipefs -a -f $DEV && mkfs.ext4 -T news -F -L $LABEL $DEV && echo wiped; fi"
+    - name: var-lib-data.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount disk to /var/lib/data
+        Requires=format-disk.service
+        After=format-disk.service
+        [Mount]
+        What=/dev/sdb
+        Where=/var/lib/data
+        Type=ext4    
+    - name: etcd-data.service
+      command: start
+      content: |
+        [Unit]
+        Description=Prepare data dir for etcd2
+        Requires=var-lib-data.mount
+        After=var-lib-data.mount
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/bin/bash -c  "mkdir -p /var/lib/data/etcd2/; chown etcd /var/lib/data/etcd2/"
+write_files:
+  - path: /etc/profile.d/alias.sh
+    content: |
+        alias lal="ls -al"
+        alias ll="ls -l"
+        alias sd="sudo systemctl"
+        alias sdl="sd list-units"
+        alias sds="sd status"
+        alias sdcat="sd cat"
+        alias j="sudo journalctl"
+        alias jfu="j -f -u"
+        alias e="etcdctl"
+        alias els="e ls --recursive"
+        alias eget="e get"
+        alias eset="e set"
+        alias eok='e cluster-health'
+        alias f="fleetctl -strict-host-key-checking=false"
+        alias fcat="f cat"
+        alias fss="f status"
+        alias fst="f start"
+        alias fdy="f destroy"
+        alias flm="f list-machines"
+        alias dk="docker "
+        alias dkc="dk ps"
+        alias dkm="dk images"
+        alias dki="dk inspect"
+        alias dkb="dk build"
+        alias dke="dk exec"
+        function dkip() { docker inspect --format "{{ .NetworkSettings.IPAddress }}" $1 ; }
+        function dkid() { docker inspect --format "{{ .ID }}" $1 ; }
+# end of files
