@@ -60,7 +60,7 @@ variable "etcd_count" {
 }
 
 variable "server_count" {
-    default = 1
+    default = 3
 }
 
 variable "worker_account" {

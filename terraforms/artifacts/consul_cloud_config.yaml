@@ -1,0 +1,167 @@
+#cloud-config
+coreos:
+  etcd2:
+    proxy: on
+    listen-client-urls: "http://0.0.0.0:2379,http://0.0.0.0:4001"   
+    initial-cluster: "${etcd_initial_cluster}"
+  fleet:
+    public-ip: "$private_ipv4"
+    metadata: "${fleet_tags}"
+  units:
+    - name: etcd2.service
+      command: start
+    - name: fleet.service
+      command: start
+    - name: format-disk.service
+      command: start
+      content: |
+        [Unit]
+        Description=Formats the disk drive
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        Environment="LABEL=var-lib-disk"
+        Environment="DEV=/dev/sdb"
+        # Do not wipe the disk if it's already being used, so the docker images persistent cross reboot.
+        ExecStart=-/bin/bash -c "if ! findfs LABEL=$LABEL > /tmp/label.$LABEL; \
+          then wipefs -a -f $DEV && mkfs.ext4 -T news -F -L $LABEL $DEV && echo wiped; fi"
+    - name: var-lib-docker.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount disk to /var/lib/docker
+        Requires=format-disk.service
+        After=format-disk.service
+        Before=docker.service
+        [Mount]
+        What=/dev/sdb
+        Where=/var/lib/docker
+        Type=ext4
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 60-docker-wait-for-disk.conf
+          content: |
+              [Unit]
+              Requires=var-lib-docker.mount
+              After=var-lib-dickor.mount
+              [Service]
+              Restart=always
+              RestartSec=5
+    - name: install-consul.service
+      command: start
+      content: |
+        [Unit]
+        Description=Install consul
+        [Service]
+        Type=oneshot
+        Environment="CONSUL_URL=https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_linux_amd64.zip"
+        Environment="DES_DIR=/opt/bin/"
+        ExecStart=/bin/bash -c "cd /tmp/ ; curl -sSL $CONSUL_URL -o consul.zip \
+          && unzip consul.zip && chmod a+x consul && mv consul $DES_DIR"
+    - name: consul.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=Consul
+        After=etcd2.service
+        Requires=etcd2.service
+        After=install-consul.service
+        Requires=install-consul.service
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        TimeoutStartSec=0
+
+        # make sure /etc/systemd/resolved.conf.d dir exists so we can add Consul's DNS resolver to system
+        ExecStartPre=/usr/bin/mkdir -p /etc/systemd/resolved.conf.d
+        ExecStartPre=-/bin/bash -c 'rm /etc/systemd/resolved.conf.d/00-consul-dns.conf && systemctl restart systemd-resolved'
+
+        ExecStart=/opt/bin/bootstrap-consul $private_ipv4 %m ${cluster_size}
+
+        ExecStartPost=-/bin/bash -c 'sleep 1; echo -e "[Resolve]\nDNS=$private_ipv4" \
+          > /etc/systemd/resolved.conf.d/00-consul-dns.conf && systemctl restart systemd-resolved'
+
+        ExecStopPost=-/bin/bash -c 'rm /etc/systemd/resolved.conf.d/00-consul-dns.conf && systemctl restart systemd-resolved'
+        ExecStopPost=-/usr/bin/etcdctl rm /consul.io/bootstrap/machines/%m
+
+        RestartSec=5
+        Restart=always
+write_files:
+  - path: /opt/bin/bootstrap-consul
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+
+      set -e
+
+      this_ip="$1"; shift
+      this_machine="$1"; shift
+      cluster_size="$1"; shift
+      consul_args="$@"
+
+      function leave-cluster {
+        etcdctl rm /consul.io/bootstrap/machines/$this_machine || true
+        /opt/bin/consul leave || true
+      }
+
+      trap leave-cluster EXIT
+
+      etcdctl ls /consul.io/bootstrap/machines || etcdctl mkdir /consul.io/bootstrap/machines
+
+      nodes=( $(etcdctl ls /consul.io/bootstrap/machines) )
+
+      if [[ $${#nodes[@]} > 0 ]]; then
+        first_node=$${nodes[0]}
+        join_ip=$(etcdctl get $first_node)
+        join_arg="--join $join_ip"
+      fi
+
+      etcdctl set /consul.io/bootstrap/machines/$this_machine $this_ip > /dev/null
+
+      # https://www.consul.io/docs/agent/options.html
+      /opt/bin/consul agent -server -ui -config-dir=/var/lib/consul/config -bootstrap-expect $cluster_size -advertise $this_ip $join_arg $@
+
+  - path: /var/lib/consul/config/consul.json
+    content: |
+      {
+        "data_dir": "/var/docker/data/consul/",
+        "client_addr": "0.0.0.0",
+        "ports": {
+          "dns": 53
+        },
+        "recursor": "8.8.8.8",
+        "disable_update_check": true
+      }
+
+  - path: /etc/profile.d/alias.sh
+    content: |
+        alias lal="ls -al"
+        alias ll="ls -l"
+        alias sd="sudo systemctl"
+        alias sdl="sd list-units"
+        alias sds="sd status"
+        alias sdcat="sd cat"
+        alias j="sudo journalctl"
+        alias jfu="j -f -u"
+        alias e="etcdctl"
+        alias els="e ls --recursive"
+        alias eget="e get"
+        alias eset="e set"
+        alias eok='e cluster-health'
+        alias f="fleetctl -strict-host-key-checking=false"
+        alias fcat="f cat"
+        alias fss="f status"
+        alias fst="f start"
+        alias fdy="f destroy"
+        alias flm="f list-machines"
+        alias dk="docker "
+        alias dkc="dk ps"
+        alias dkm="dk images"
+        alias dki="dk inspect"
+        alias dkb="dk build"
+        alias dke="dk exec"
+        function dkip() { docker inspect --format "{{ .NetworkSettings.IPAddress }}" $1 ; }
+        function dkid() { docker inspect --format "{{ .ID }}" $1 ; }
+# end of files

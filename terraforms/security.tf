@@ -31,6 +31,39 @@ resource "google_compute_firewall" "etcd" {
     target_tags = ["etcd-server"]
 }
 
+resource "google_compute_firewall" "consul" {
+    name = "allow-consul"
+    description = "Allow consul from internal."
+    network = "default"
+
+    allow {
+        protocol = "tcp"      
+        ports = ["8301", "8302", "8400", "8500", ]  
+    } 
+
+    allow {
+        protocol = "udp"      
+        ports = ["8301", "8302", "53"]  
+    }
+
+    source_ranges = ["10.0.0.0/16"]
+    target_tags = ["consul-server"]
+}
+
+resource "google_compute_firewall" "consul-ui" {
+    name = "allow-consul-ui"
+    description = "Allow consul from internal."
+    network = "default"
+
+    allow {
+        protocol = "tcp"      
+        ports = ["8500", ]  
+    } 
+
+    source_ranges = ["0.0.0.0/0"]
+    target_tags = ["consul-server"]
+}
+
 resource "google_compute_firewall" "www" {
     name = "allow-www"
     description = "Allow nomad from anywhere."
