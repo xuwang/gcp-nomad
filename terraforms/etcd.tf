@@ -10,7 +10,7 @@ module "etcd" {
     region = "${var.region}"
     zones = "${var.zones}"
     image = "${var.image}"
-    machine_type = "${var.machine_type}"
+    machine_type = "${var.etcd_machine_type}"
     disk_size="${var.server_disk_size}"
 }
 

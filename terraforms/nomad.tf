@@ -6,11 +6,11 @@ module "nomad" {
     instance_tags ="nomad-server"
 
     # defaults in variables.tf
-    cluster_size = "${var.server_count}"
+    cluster_size = "${var.nomad_count}"
     region = "${var.region}"
     zones = "${var.zones}"
     image = "${var.image}"
-    machine_type = "${var.machine_type}"
+    machine_type = "${var.nomad_machine_type}"
     disk_size="${var.server_disk_size}"
 }
 
@@ -18,10 +18,10 @@ resource "template_file" "nomad_cloud_config" {
 
     template = "${file("artifacts/nomad_cloud_config.yaml")}"
     vars {
-        "etcd_initial_cluster" =  "${join(",", formatlist("%s=http://%s:2380", split(",", module.etcd.node_names), split(",", module.etcd.private_ips)))}"
+        "etcd_initial_cluster" = "${join(",", formatlist("%s=http://%s:2380", split(",", module.etcd.node_names), split(",", module.etcd.private_ips)))}"
         "region" = "${var.region}"
-        "cluster_size" = "${var.server_count}"
-        "fleet_tags" = "nomad,${var.region},${var.machine_type}"
+        "cluster_size" = "${var.nomad_count}"
+        "fleet_tags" = "nomad,${var.region},${var.nomad_machine_type}"
     }
 }
 

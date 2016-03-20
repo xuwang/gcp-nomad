@@ -58,13 +58,40 @@ variable "machine_type" {
 variable "etcd_count" {
     default = 1
 }
+variable "etcd_machine_type" {
+    default = "n1-standard-1"
+}
 
-variable "server_count" {
+
+variable "consul_count" {
     default = 3
+}
+variable "consul_machine_type" {
+    default = "n1-standard-1"
+}
+variable "consul_master_token" {
+    default = "_consul_master_token_"
+}
+
+variable "nomad_count" {
+    default = 0
+}
+variable "nomad_machine_type" {
+    default = "n1-standard-1"
+}
+
+variable "vault_count" {
+    default = 0
+}
+variable "vault_machine_type" {
+    default = "n1-standard-1"
 }
 
 variable "worker_account" {
     default = 1
+}
+variable "worker_machine_type" {
+    default = "n1-standard-1"
 }
 
 variable "server_disk_size" {

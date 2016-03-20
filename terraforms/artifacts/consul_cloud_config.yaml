@@ -4,9 +4,6 @@ coreos:
     proxy: on
     listen-client-urls: "http://0.0.0.0:2379,http://0.0.0.0:4001"   
     initial-cluster: "${etcd_initial_cluster}"
-  fleet:
-    public-ip: "$private_ipv4"
-    metadata: "${fleet_tags}"
   units:
     - name: etcd2.service
       command: start
@@ -56,9 +53,10 @@ coreos:
         [Service]
         Type=oneshot
         Environment="CONSUL_URL=https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_linux_amd64.zip"
-        Environment="DES_DIR=/opt/bin/"
-        ExecStart=/bin/bash -c "cd /tmp/ ; curl -sSL $CONSUL_URL -o consul.zip \
-          && unzip consul.zip && chmod a+x consul && mv consul $DES_DIR"
+        Environment="DES=/opt/bin/consul"
+        ExecStartPre=-/bin/bash -c "mkdir -p /opt/bin/"
+        ExecStart=/bin/bash -c "if [ ! -f $DES ] ; then cd /tmp/ ; curl -sSL $CONSUL_URL -o consul.zip \
+          && unzip consul.zip && chmod a+x consul && mv consul $DES ; fi"
     - name: consul.service
       command: start
       enable: true
@@ -78,7 +76,7 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /etc/systemd/resolved.conf.d
         ExecStartPre=-/bin/bash -c 'rm /etc/systemd/resolved.conf.d/00-consul-dns.conf && systemctl restart systemd-resolved'
 
-        ExecStart=/opt/bin/bootstrap-consul $private_ipv4 %m ${cluster_size}
+        ExecStart=/opt/bin/bootstrap-consul $private_ipv4 %m
 
         ExecStartPost=-/bin/bash -c 'sleep 1; echo -e "[Resolve]\nDNS=$private_ipv4" \
           > /etc/systemd/resolved.conf.d/00-consul-dns.conf && systemctl restart systemd-resolved'
@@ -98,7 +96,6 @@ write_files:
 
       this_ip="$1"; shift
       this_machine="$1"; shift
-      cluster_size="$1"; shift
       consul_args="$@"
 
       function leave-cluster {
@@ -121,18 +118,25 @@ write_files:
       etcdctl set /consul.io/bootstrap/machines/$this_machine $this_ip > /dev/null
 
       # https://www.consul.io/docs/agent/options.html
-      /opt/bin/consul agent -server -ui -config-dir=/var/lib/consul/config -bootstrap-expect $cluster_size -advertise $this_ip $join_arg $@
+      /opt/bin/consul agent -config-dir=/var/lib/docker/data/consul/config -advertise $this_ip $join_arg $@
 
-  - path: /var/lib/consul/config/consul.json
+  - path: /var/lib/docker/data/consul/config/consul.json
     content: |
       {
-        "data_dir": "/var/docker/data/consul/",
+        "datacenter": "GCP-${region}",
+        "data_dir": "/var/lib/docker/data/consul/",
+        "server": true,
+        "ui": true,
+        "bootstrap_expect": ${cluster_size},
         "client_addr": "0.0.0.0",
         "ports": {
-          "dns": 53
+          "dns": 53,
+          "http": 80
         },
         "recursor": "8.8.8.8",
-        "disable_update_check": true
+        "disable_update_check": true,
+        "acl_datacenter": "GCP-${region}",
+        "acl_master_token": "${consul_master_token}"
       }
 
   - path: /etc/profile.d/alias.sh
@@ -150,12 +154,6 @@ write_files:
         alias eget="e get"
         alias eset="e set"
         alias eok='e cluster-health'
-        alias f="fleetctl -strict-host-key-checking=false"
-        alias fcat="f cat"
-        alias fss="f status"
-        alias fst="f start"
-        alias fdy="f destroy"
-        alias flm="f list-machines"
         alias dk="docker "
         alias dkc="dk ps"
         alias dkm="dk images"

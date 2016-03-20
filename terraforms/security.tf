@@ -11,8 +11,8 @@ resource "google_compute_firewall" "nomad" {
         ports = ["4646", "4647", "4848"]  
     }
 
-    source_ranges = ["10.0.0.0/16"]
-    target_tags = ["nomad-server"]
+    source_ranges = ["10.0.0.0/24"]
+    target_tags = ["nomad"]
 }
 
 resource "google_compute_firewall" "etcd" {
@@ -27,8 +27,8 @@ resource "google_compute_firewall" "etcd" {
         ports = ["2379", "2380"]  
     }
 
-    source_ranges = ["10.0.0.0/16"]
-    target_tags = ["etcd-server"]
+    source_ranges = ["10.0.0.0/24"]
+    target_tags = ["etcd"]
 }
 
 resource "google_compute_firewall" "consul" {
@@ -38,7 +38,7 @@ resource "google_compute_firewall" "consul" {
 
     allow {
         protocol = "tcp"      
-        ports = ["8301", "8302", "8400", "8500", ]  
+        ports = ["8301", "8302", "8400", "80", "443"]  
     } 
 
     allow {
@@ -46,8 +46,8 @@ resource "google_compute_firewall" "consul" {
         ports = ["8301", "8302", "53"]  
     }
 
-    source_ranges = ["10.0.0.0/16"]
-    target_tags = ["consul-server"]
+    source_ranges = ["10.0.0.0/24"]
+    target_tags = ["consul"]
 }
 
 resource "google_compute_firewall" "consul-ui" {
@@ -57,23 +57,9 @@ resource "google_compute_firewall" "consul-ui" {
 
     allow {
         protocol = "tcp"      
-        ports = ["8500", ]  
+        ports = ["80", "443"]  
     } 
 
     source_ranges = ["0.0.0.0/0"]
-    target_tags = ["consul-server"]
-}
-
-resource "google_compute_firewall" "www" {
-    name = "allow-www"
-    description = "Allow nomad from anywhere."
-    network = "default"
-
-    allow {
-        protocol = "tcp"
-        ports = ["80"]
-    }
-
-    source_ranges = ["0.0.0.0/0"]
-    target_tags = ["nomad-server"]
+    target_tags = ["consul"]
 }

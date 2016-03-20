@@ -58,6 +58,11 @@ output "node_names" {
     value = "${join(",", google_compute_instance.node.*.name)}"
 }
 
+# <zone>/<instance> used by load balancer
+output "instance_names" {
+    value = "${join(",", formatlist("%s/%s", google_compute_instance.node.*.zone, google_compute_instance.node.*.name))}"
+}
+
 output "private_ips" {
     value = "${join(",", google_compute_instance.node.*.network_interface.0.address)}"
 }
