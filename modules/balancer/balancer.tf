@@ -38,4 +38,8 @@ resource "google_compute_http_health_check" "service" {
     timeout_sec = "${var.timeout_sec}"
 }
 
+output "service_ip" {
+    value = "${google_compute_address.service.address"
+}
+
 

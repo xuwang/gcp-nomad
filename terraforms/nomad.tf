@@ -1,9 +1,9 @@
-# Crate Nomad server cluster
+# Crate nomad server cluster
 module "nomad" {
     source = "../modules/cluster"
-    cluster_name="nomad"
+    cluster_name = "nomad"
     user_data = "${template_file.nomad_cloud_config.rendered}"
-    instance_tags ="nomad-server"
+    instance_tags = "green"
 
     # defaults in variables.tf
     cluster_size = "${var.nomad_count}"
@@ -32,4 +32,20 @@ output "nomad_public_ips" {
 output "nomad_private_ips" {
     value = "${module.nomad.private_ips}"
 }
+
+/*
+# GCP free trial account allows only ONE static IP address
+
+module "nomad_load_balancer" {
+    source = "../modules/balancer"
+    name = "nomad"
+    check_port = "4646"
+    check_path = "/v1/status/peers"
+    instances ="${module.nomad.instance_names}"
+}
+
+output "nomad_service_ip" {
+    value = "${module.nomad_load_balancer.service_ip}"
+}
+*/
 

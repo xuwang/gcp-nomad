@@ -26,13 +26,6 @@ resource "template_file" "consul_cloud_config" {
     }
 }
 
-module "consul_load_balancer" {
-    source = "../modules/balancer"
-    name = "consul"
-    check_port = "80"
-    check_path = "/v1/status/leader"
-    instances ="${module.consul.instance_names}"
-}
 
 output "consul_public_ips" {
     value = "${module.consul.public_ips}"
@@ -41,4 +34,20 @@ output "consul_public_ips" {
 output "consul_private_ips" {
     value = "${module.consul.private_ips}"
 }
+
+/*
+# GCP free trial account allows only ONE static IP address
+
+module "consul_load_balancer" {
+    source = "../modules/balancer"
+    name = "consul"
+    check_port = "80"
+    check_path = "/v1/status/leader"
+    instances ="${module.consul.instance_names}"
+}
+
+output "consul_service_ip" {
+    value = "${module.consul_load_balancer.service_ip}"
+}
+*/
 

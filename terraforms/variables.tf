@@ -62,9 +62,8 @@ variable "etcd_machine_type" {
     default = "n1-standard-1"
 }
 
-
 variable "consul_count" {
-    default = 3
+    default = 0
 }
 variable "consul_machine_type" {
     default = "n1-standard-1"
@@ -74,7 +73,7 @@ variable "consul_master_token" {
 }
 
 variable "nomad_count" {
-    default = 0
+    default = 3
 }
 variable "nomad_machine_type" {
     default = "n1-standard-1"
@@ -88,7 +87,7 @@ variable "vault_machine_type" {
 }
 
 variable "worker_account" {
-    default = 1
+    default = 0
 }
 variable "worker_machine_type" {
     default = "n1-standard-1"
