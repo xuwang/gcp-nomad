@@ -1,4 +1,4 @@
-# Crate consul server cluster
+# Create consul server cluster
 module "consul" {
     source = "../modules/cluster"
     cluster_name = "consul"
@@ -26,7 +26,6 @@ resource "template_file" "consul_cloud_config" {
     }
 }
 
-
 output "consul_public_ips" {
     value = "${module.consul.public_ips}"
 }
@@ -35,7 +34,6 @@ output "consul_private_ips" {
     value = "${module.consul.private_ips}"
 }
 
-/*
 # GCP free trial account allows only ONE static IP address
 
 module "consul_load_balancer" {
@@ -49,5 +47,5 @@ module "consul_load_balancer" {
 output "consul_service_ip" {
     value = "${module.consul_load_balancer.service_ip}"
 }
-*/
+
 

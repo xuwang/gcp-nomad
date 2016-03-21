@@ -1,4 +1,4 @@
-# Crate etcd server cluster
+# Create etcd server cluster
 module "etcd" {
     source = "../modules/cluster"
     cluster_name="etcd"

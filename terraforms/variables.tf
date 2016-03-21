@@ -63,7 +63,7 @@ variable "etcd_machine_type" {
 }
 
 variable "consul_count" {
-    default = 0
+    default = 1
 }
 variable "consul_machine_type" {
     default = "n1-standard-1"
@@ -86,8 +86,8 @@ variable "vault_machine_type" {
     default = "n1-standard-1"
 }
 
-variable "worker_account" {
-    default = 0
+variable "worker_count" {
+    default = 3
 }
 variable "worker_machine_type" {
     default = "n1-standard-1"

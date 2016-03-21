@@ -39,7 +39,7 @@ resource "google_compute_http_health_check" "service" {
 }
 
 output "service_ip" {
-    value = "${google_compute_address.service.address"
+    value = "${google_compute_address.service.address}"
 }
 
 

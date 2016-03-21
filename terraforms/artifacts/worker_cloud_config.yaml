@@ -1,17 +1,6 @@
 #cloud-config
 coreos:
-  etcd2:
-    proxy: on
-    listen-client-urls: "http://0.0.0.0:2379,http://0.0.0.0:4001"   
-    initial-cluster: "${etcd_initial_cluster}"
-  fleet:
-    public-ip: "$private_ipv4"
-    metadata: "${fleet_tags}"
   units:
-    - name: etcd2.service
-      command: start
-    - name: fleet.service
-      command: start
     - name: format-disk.service
       command: start
       content: |
@@ -73,68 +62,48 @@ coreos:
         [Service]
         EnvironmentFile=/etc/environment
         TimeoutStartSec=0
-        ExecStart=/opt/bin/bootstrap-nomad $private_ipv4 %m "%H"
-        ExecStopPost=-/usr/bin/etcdctl rm /nomad.io/bootstrap/machines/%m
+        ExecStart=/opt/bin/nomad agent -node-id "%H" -config /etc/nomad.d/client.hcl -servers "${nomad_servers}"
         RestartSec=5
         Restart=always
 write_files:
-  - path: /opt/bin/bootstrap-nomad
-    permissions: '0755'
-    content: |
-      #!/bin/bash
-
-      set -e
-
-      this_ip="$1"; shift
-      this_machine="$1"; shift
-      this_host="$1"; shift
-      nomad_args="$@"
-
-      function leave-cluster {
-        etcdctl rm /nomad.io/bootstrap/machines/$this_machine || true
-        # /opt/bin/nomad leave || true
-      }
-
-      trap leave-cluster EXIT
-
-      etcdctl ls /nomad.io/bootstrap/machines || etcdctl mkdir /nomad.io/bootstrap/machines
-
-      nodes=( $(etcdctl ls /nomad.io/bootstrap/machines) )
-
-      if [[ $${#nodes[@]} > 0 ]]; then
-        first_node=$${nodes[0]}
-        join_ip=$(etcdctl get $first_node)
-        join_arg="-join $join_ip"
-      fi
-
-      etcdctl set /nomad.io/bootstrap/machines/$this_machine $this_ip > /dev/null
-
-      # https://www.nomadproject.io/docs/agent/config.html
-      /opt/bin/nomad agent -node-id $this_host -config /etc/nomad.d/server.hcl $join_arg $@
-
-  - path: /etc/nomad.d/server.hcl
+  - path: /etc/nomad.d/client.hcl
     content: |
       # Increase log verbosity
       log_level = "DEBUG"
       datacenter = "GCP"
       region = "${region}"
       bind_addr = "0.0.0.0"
-      
+      meta = "${nomad_meta}"
       # Setup data dir
-      data_dir = "/var/lib/docker/data/nomad"
-      
-      # Enable the server
-      server {
-          enabled = true
-          # Self-elect, should be 3 or 5 for production
-          bootstrap_expect = ${cluster_size}
-      }
+      data_dir = "/var/lib/docker/data/nomad/"
+
       advertise {
         # We need to specify our host's IP because we can't
         # advertise 0.0.0.0 to other nodes in our cluster.
         rpc = "$private_ipv4:4647"
       }
-      
+
+      client {
+        enabled = true
+        network_speed = 100
+        options {
+          "driver.raw_exec.enable" = "1"
+        }
+        /*
+        consul {
+          address = "${consul_address}"
+          token = "${consul_token}"
+        }
+        */
+      }
+
+      # Reserve a portion of the nodes resources from being used by Nomad when placing tasks
+      reserved {
+        cpu = 500
+        memory = 512
+        disk = 1024
+        reserved_ports = "22,80,8500-8600"
+      }
       leave_on_interrupt = true
       leave_on_terminate = true
   - path: /etc/profile.d/alias.sh
@@ -147,17 +116,6 @@ write_files:
         alias sdcat="sd cat"
         alias j="sudo journalctl"
         alias jfu="j -f -u"
-        alias e="etcdctl"
-        alias els="e ls --recursive"
-        alias eget="e get"
-        alias eset="e set"
-        alias eok='e cluster-health'
-        alias f="fleetctl -strict-host-key-checking=false"
-        alias fcat="f cat"
-        alias fss="f status"
-        alias fst="f start"
-        alias fdy="f destroy"
-        alias flm="f list-machines"
         alias dk="docker "
         alias dkc="dk ps"
         alias dkm="dk images"

@@ -65,6 +65,8 @@ coreos:
         Description=Consul
         After=etcd2.service
         Requires=etcd2.service
+        After=docker.service
+        Requires=docker.service
         After=install-consul.service
         Requires=install-consul.service
 
@@ -118,9 +120,9 @@ write_files:
       etcdctl set /consul.io/bootstrap/machines/$this_machine $this_ip > /dev/null
 
       # https://www.consul.io/docs/agent/options.html
-      /opt/bin/consul agent -config-dir=/var/lib/docker/data/consul/config -advertise $this_ip $join_arg $@
+      /opt/bin/consul agent -config-dir=/etc/consul.d -advertise $this_ip $join_arg $@
 
-  - path: /var/lib/docker/data/consul/config/consul.json
+  - path: /etc/consul.d/consul.json
     content: |
       {
         "datacenter": "GCP-${region}",

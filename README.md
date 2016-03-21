@@ -72,21 +72,25 @@ $ cd gcp-nomad/tf
 
 Run Terraform plan to preview what resources will be created:
 
-```
+```shell
 $ terraform plan
 ...
-+ google_compute_target_pool.www
-    description:     "" => "www server pool"
-    health_checks.#: "" => "1"
-    health_checks.0: "" => "www-check"
-    instances.#:     "" => "3"
-    instances.0:     "" => "us-central1-a/www-1"
-    instances.1:     "" => "us-central1-b/www-2"
-    instances.2:     "" => "us-central1-c/www-3"
-    name:            "" => "www-pool"
-    self_link:       "" => "<computed>"
-Plan: 8 to add, 0 to change, 0 to destroy.
-```
+module.worker.google_compute_instance.node.1: Creation complete
+module.worker.google_compute_instance.node.2: Creation complete
+module.worker.google_compute_instance.node.0: Creation complete
+Apply complete! Resources: 26 added, 0 changed, 0 destroyed.
+...
+Outputs:
+  consul_private_ips   = 10.128.0.5
+  consul_public_ips    = 104.197.15.176
+  consul_service_ip    = 104.154.93.78
+  etcd_initial_cluster = etcd-1=http://10.128.0.2:2380
+  etcd_private_ips     = 10.128.0.2
+  etcd_public_ips      = 104.197.187.59
+  nomad_private_ips    = 10.128.0.4,10.128.0.3,10.128.0.6
+  nomad_public_ips     = 130.211.175.44,104.197.46.94,104.197.24.239
+  worker_private_ips   = 10.128.0.8,10.128.0.7,10.128.0.9
+  worker_public_ips    = 104.197.239.164,104.197.92.33,104.197.104.97```
 
 If everything looks good, apply the terraform:
 
@@ -100,6 +104,35 @@ Outputs:
 ```
 Give a few minutes, the NomadCluster should be up and running on google cloud.
 
+## Demo
+
+### Login and check out the Nomad Cluster
+If you have [gcloud][gCloud] installed:
+
+```shell
+$ gcloud --project=nomadcluster compute ssh nomad-1
+```
+
+Or simply login to one of nomad server from [GCP Console] (https://console.cloud.google.com/compute/instances?project=nomadcluster) by click the **SSH** link on the nomad-1 instance:
+
+```shell
+demo@nomad-1 ~ $ nomad server-members
+Name                                         Addr        Port  Status  Proto  Build  DC   Region
+nomad-1.c.nomadcluster.internal.us-central1  10.128.0.4  4648  alive   2      0.2.3  GCP  us-central1
+nomad-2.c.nomadcluster.internal.us-central1  10.128.0.3  4648  alive   2      0.2.3  GCP  us-central1
+nomad-3.c.nomadcluster.internal.us-central1  10.128.0.6  4648  alive   2      0.2.3  GCP  us-central1
+
+demo@nomad-1 ~ $ nomad node-status
+ID                                DC   Name                              Class   Drain  Status
+worker-1.c.nomadcluster.internal  GCP  worker-1.c.nomadcluster.internal  <none>  false  ready
+worker-2.c.nomadcluster.internal  GCP  worker-2.c.nomadcluster.internal  <none>  false  ready
+worker-3.c.nomadcluster.internal  GCP  worker-3.c.nomadcluster.internal  <none>  false  ready
+```
+### Check out the Consul Cluster
+
+Open browser on http://< nomad_service_ip>
+
+![Consul UI](doc/consul.png "Consul UI")
 
 ## Cleanup: Destroy the NomadCluster
 
