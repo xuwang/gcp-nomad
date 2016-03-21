@@ -136,17 +136,27 @@ Open browser on http://< nomad_service_ip>
 
 ## Cleanup: Destroy the NomadCluster
 
-If you want to **stop paying google for NomadCluster**, remember to clean it up:
+If you want to **stop paying google** for NomadCluster, remember to clean it up:
 
 ```shell
 $ terraform destroy
-...
-google_compute_instance.www.1: Destruction complete
-google_compute_instance.www.0: Destruction complete
-google_compute_instance.www.2: Destruction complete
+...Do you really want to destroy?
+  Terraform will delete all your managed infrastructure.
+  There is no undo. Only 'yes' will be accepted to confirm.
 
-Apply complete! Resources: 0 added, 0 changed, 8 destroyed.
+  Enter a value: yes
+
+null_resource.etcd_discovery_url: Refreshing state... (ID: 2224559004314873638)
+template_file.etcd_cloud_config: Refreshing state... 
+...
+...
+null_resource.etcd_discovery_url: Destroying...
+null_resource.etcd_discovery_url: Destruction complete
+google_compute_disk.data: Destruction complete
+
+Apply complete! Resources: 0 added, 0 changed, 30 destroyed.
 ```
+**Verify everything is destroyed on [GCP Console] (https://console.cloud.google.com/compute/instances?project=nomadcluster)**
 
 [virtualbox]: https://www.virtualbox.org/
 [vagrant]: https://www.vagrantup.com/downloads.html
