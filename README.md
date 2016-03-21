@@ -78,7 +78,7 @@ $ terraform plan
 module.worker.google_compute_instance.node.1: Creation complete
 module.worker.google_compute_instance.node.2: Creation complete
 module.worker.google_compute_instance.node.0: Creation complete
-Apply complete! Resources: 26 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 30 added, 0 changed, 0 destroyed.
 ...
 Outputs:
   consul_private_ips   = 10.128.0.5
@@ -97,7 +97,7 @@ If everything looks good, apply the terraform:
 ```shell
 $ terraform apply
 ...
-Apply complete! Resources: 8 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 30 added, 0 changed, 0 destroyed.
 ...
 Outputs:
    nomad_service_ip = 146.148.104.177
