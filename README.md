@@ -90,7 +90,7 @@ Outputs:
   nomad_private_ips    = 10.128.0.4,10.128.0.3,10.128.0.6
   nomad_public_ips     = 130.211.175.44,104.197.46.94,104.197.24.239
   worker_private_ips   = 10.128.0.8,10.128.0.7,10.128.0.9
-  worker_public_ips    = 104.197.239.164,104.197.92.33,104.197.104.97```
+  worker_public_ips    = 104.197.239.164,104.197.92.33,104.197.104.97
 ```
 If everything looks good, apply the terraform:
 
